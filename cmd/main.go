@@ -17,7 +17,13 @@ func main() {
 		mcp.WithNumber("lon", mcp.Required(), mcp.Description("Longitude of location")),
 	)
 
+	toolGetLatLon := mcp.NewTool("get_latlon",
+		mcp.WithDescription("Convert a location name to latitude and longitude coordinates using OpenMeteo geocoding API"),
+		mcp.WithString("location", mcp.Required(), mcp.Description("Location name (e.g., 'New York', 'London, UK')")),
+	)
+
 	s.AddTool(toolGetCurrentWeather, tools.GetCurrentWeather)
+	s.AddTool(toolGetLatLon, tools.GetLatLon)
 
 	if err := server.ServeStdio(s); err != nil {
 		fmt.Printf("server error: %v\n", err)

@@ -8,12 +8,14 @@ import (
 )
 
 const (
-	openmeteoURL = "https://api.open-meteo.com/v1"
-	apiForecast  = "/forecast"
+	openmeteoURL    = "https://api.open-meteo.com/v1"
+	geocodingURL    = "https://geocoding-api.open-meteo.com/v1"
+	apiForecast     = "/forecast"
+	apiGeocodingSearch = "/search"
 )
 
-func Forecast(lat, lon float64) ([]byte, error) {
-	p, err := url.JoinPath(openmeteoURL, apiForecast)
+func makeAPIRequest(baseURL, endpoint string, params url.Values) ([]byte, error) {
+	p, err := url.JoinPath(baseURL, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -22,11 +24,6 @@ func Forecast(lat, lon float64) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	params := url.Values{}
-	params.Add("latitude", fmt.Sprintf("%.6f", lat))
-	params.Add("longitude", fmt.Sprintf("%.6f", lon))
-	params.Add("current", "temperature_2m,is_day,showers,cloud_cover,wind_speed_10m,wind_direction_10m,pressure_msl,snowfall,precipitation,relative_humidity_2m,apparent_temperature,rain,weather_code,surface_pressure,wind_gusts_10m")
 
 	u.RawQuery = params.Encode()
 
@@ -49,4 +46,22 @@ func Forecast(lat, lon float64) ([]byte, error) {
 	}
 
 	return io.ReadAll(resp.Body)
+}
+
+func Forecast(lat, lon float64) ([]byte, error) {
+	params := url.Values{}
+	params.Add("latitude", fmt.Sprintf("%.6f", lat))
+	params.Add("longitude", fmt.Sprintf("%.6f", lon))
+	params.Add("current", "temperature_2m,is_day,showers,cloud_cover,wind_speed_10m,wind_direction_10m,pressure_msl,snowfall,precipitation,relative_humidity_2m,apparent_temperature,rain,weather_code,surface_pressure,wind_gusts_10m")
+
+	return makeAPIRequest(openmeteoURL, apiForecast, params)
+}
+
+func Geocoding(location string) ([]byte, error) {
+	params := url.Values{}
+	params.Add("name", location)
+	params.Add("count", "1")
+	params.Add("language", "en")
+
+	return makeAPIRequest(geocodingURL, apiGeocodingSearch, params)
 }

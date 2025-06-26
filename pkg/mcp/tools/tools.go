@@ -26,3 +26,17 @@ func GetCurrentWeather(ctx context.Context, request mcplib.CallToolRequest) (*mc
 	// return response data unprocessed, let the model do the work
 	return mcplib.NewToolResultText(string(data)), nil
 }
+
+func GetLatLon(ctx context.Context, request mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
+	location, err := request.RequireString("location")
+	if err != nil {
+		return mcplib.NewToolResultError(err.Error()), nil
+	}
+
+	data, err := openmeteo.Geocoding(location)
+	if err != nil {
+		return mcplib.NewToolResultError(err.Error()), nil
+	}
+
+	return mcplib.NewToolResultText(string(data)), nil
+}
