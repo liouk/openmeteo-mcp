@@ -2,20 +2,47 @@ package tools
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/liouk/openmeteo-mcp/pkg/openmeteo"
 	mcplib "github.com/mark3labs/mcp-go/mcp"
 )
 
 func GetCurrentWeather(ctx context.Context, request mcplib.CallToolRequest) (*mcplib.CallToolResult, error) {
-	lat, err := request.RequireFloat("lat")
-	if err != nil {
-		return mcplib.NewToolResultError(err.Error()), nil
-	}
+	var lat, lon float64
+	var err error
 
-	lon, err := request.RequireFloat("lon")
-	if err != nil {
-		return mcplib.NewToolResultError(err.Error()), nil
+	lat, latErr := request.RequireFloat("lat")
+	lon, lonErr := request.RequireFloat("lon")
+
+	if latErr != nil || lonErr != nil {
+		location, locErr := request.RequireString("location")
+		if locErr != nil {
+			return mcplib.NewToolResultError("Either 'lat' and 'lon' parameters or 'location' parameter must be provided"), nil
+		}
+
+		geocodeData, err := openmeteo.Geocoding(location)
+		if err != nil {
+			return mcplib.NewToolResultError(err.Error()), nil
+		}
+
+		var geocodeResult struct {
+			Results []struct {
+				Latitude  float64 `json:"latitude"`
+				Longitude float64 `json:"longitude"`
+			} `json:"results"`
+		}
+
+		if err := json.Unmarshal(geocodeData, &geocodeResult); err != nil {
+			return mcplib.NewToolResultError("Failed to parse geocoding response"), nil
+		}
+
+		if len(geocodeResult.Results) == 0 {
+			return mcplib.NewToolResultError("No location found for the given query"), nil
+		}
+
+		lat = geocodeResult.Results[0].Latitude
+		lon = geocodeResult.Results[0].Longitude
 	}
 
 	data, err := openmeteo.Forecast(lat, lon)
